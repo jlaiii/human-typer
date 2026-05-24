@@ -120,6 +120,13 @@
     font-weight:600;
   }
 
+  .demo-modes label.mistake-toggle {
+    display:flex; align-items:center; gap:6px;
+    color:#8b949e; font-size:0.82rem; cursor:pointer;
+    margin-left:auto; user-select:none;
+  }
+  .demo-modes label.mistake-toggle input { accent-color:#58a6ff; }
+
   .terminal {
     background:#0d1117;
     border:1px solid #30363d;
@@ -210,6 +217,9 @@
       <button data-mode="Expert">Expert</button>
       <button data-mode="Pro" class="active">Pro</button>
       <button data-mode="Bot">Bot</button>
+      <label class="mistake-toggle">
+        <input type="checkbox" id="demo-leave-cb"> Leave mistakes
+      </label>
     </div>
     <div class="terminal" id="demo-terminal">
       <span id="demo-text"></span><span class="cursor"></span>
@@ -334,68 +344,227 @@ Particle.prototype.update = function() {
   origUpdate.call(this);
 };
 
-// ── typing demo animation ──
+// ── 1:1 typing demo (ported from Python engine) ──────
 const demoSentences = [
   "Human Typer simulates natural keyboard input with variable delays, bursts, and hesitation patterns.",
   "It fools browser-based bot detection by mimicking real human typing cadence.",
   "Choose from five skill modes — Beginner to Pro — or go full Bot for raw speed."
 ];
 
-const modeDelays = {
-  Beginner: { min: 140, max: 320, pause: 1800 },
-  Average:  { min: 80,  max: 200, pause: 1800 },
-  Expert:   { min: 55,  max: 150, pause: 1600 },
-  Pro:      { min: 35,  max: 110, pause: 1400 },
-  Bot:      { min: 15,  max: 30,  pause: 500  }
+const DEMO_PROFILES = {
+  Beginner: {
+    key_min:0.16,key_max:0.35,hold_min:0.06,hold_max:0.22,
+    burst_min:1,burst_max:3,hesitate_chance:0.16,hesitate_min:0.3,hesitate_max:0.9,
+    sent_min:0.5,sent_max:1.8,wp_chance:0.30,wp_min:0.12,wp_max:0.50,
+    typo_chance:0.07,typo_bsp_min:0.10,typo_bsp_max:0.30,
+    word_typo_chance:0.015,speed_jitter:0.5,ramp_words:2,warmup_words:4,drift_factor:0.25
+  },
+  Average: {
+    key_min:0.09,key_max:0.22,hold_min:0.05,hold_max:0.16,
+    burst_min:3,burst_max:6,hesitate_chance:0.07,hesitate_min:0.15,hesitate_max:0.55,
+    sent_min:0.25,sent_max:0.9,wp_chance:0.13,wp_min:0.06,wp_max:0.25,
+    typo_chance:0.035,typo_bsp_min:0.06,typo_bsp_max:0.18,
+    word_typo_chance:0.005,speed_jitter:0.7,ramp_words:3,warmup_words:2,drift_factor:0.15
+  },
+  Expert: {
+    key_min:0.07,key_max:0.17,hold_min:0.04,hold_max:0.12,
+    burst_min:4,burst_max:10,hesitate_chance:0.03,hesitate_min:0.10,hesitate_max:0.35,
+    sent_min:0.18,sent_max:0.6,wp_chance:0.07,wp_min:0.04,wp_max:0.16,
+    typo_chance:0.018,typo_bsp_min:0.05,typo_bsp_max:0.14,
+    word_typo_chance:0.002,speed_jitter:0.8,ramp_words:4,warmup_words:2,drift_factor:0.10
+  },
+  Pro: {
+    key_min:0.06,key_max:0.15,hold_min:0.03,hold_max:0.10,
+    burst_min:5,burst_max:14,hesitate_chance:0.012,hesitate_min:0.06,hesitate_max:0.20,
+    sent_min:0.10,sent_max:0.35,wp_chance:0.03,wp_min:0.02,wp_max:0.08,
+    typo_chance:0.007,typo_bsp_min:0.04,typo_bsp_max:0.09,
+    word_typo_chance:0.0,speed_jitter:0.85,ramp_words:5,warmup_words:1,drift_factor:0.06
+  },
+  Bot: {
+    key_min:0.0,key_max:0.004,hold_min:0.0,hold_max:0.002,
+    burst_min:999,burst_max:999,hesitate_chance:0.0,hesitate_min:0.0,hesitate_max:0.0,
+    sent_min:0.0,sent_max:0.0,wp_chance:0.0,wp_min:0.0,wp_max:0.0,
+    typo_chance:0.0,typo_bsp_min:0.0,typo_bsp_max:0.0,
+    word_typo_chance:0.0,speed_jitter:1.0,ramp_words:999,warmup_words:0,drift_factor:0.0
+  }
 };
 
-let demoIdx = 0;
-let demoMode = 'Pro';
-let demoTimer = null;
-let demoPauseTimer = null;
-const demoEl = document.getElementById('demo-text');
+const NEARBY = {
+  a:'s',b:'v',c:'x',d:'s',e:'w',f:'d',g:'f',h:'g',i:'o',j:'k',
+  k:'j',l:'k',m:'n',n:'m',o:'i',p:'o',q:'w',r:'t',s:'a',t:'r',
+  u:'y',v:'c',w:'e',x:'c',y:'u',z:'x'
+};
 
-function typeSentence(text, el, callback) {
-  let i = 0;
-  el.textContent = '';
-  const d = modeDelays[demoMode];
-  function typeChar() {
-    if (i < text.length) {
-      el.textContent += text[i];
-      i++;
-      const delay = d.min + Math.random() * (d.max - d.min);
-      demoTimer = setTimeout(typeChar, delay);
-    } else {
-      demoTimer = null;
-      if (callback) demoPauseTimer = setTimeout(callback, d.pause);
+let demoIdx = 0, demoMode = 'Pro', demoLeave = false;
+let demoRunning = false, demoAbort = false;
+const demoEl = document.getElementById('demo-text');
+const demoLeaveCb = document.getElementById('demo-leave-cb');
+
+demoLeaveCb.addEventListener('change', () => {
+  demoLeave = demoLeaveCb.checked;
+});
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms * 1000));
+}
+
+async function typeHuman(text) {
+  const p = DEMO_PROFILES[demoMode];
+
+  // Bot mode: instant text dump (no animation needed)
+  if (demoMode === 'Bot') {
+    demoEl.textContent = text;
+    await sleep(0.6);
+    return;
+  }
+
+  let i = 0, wordCount = 0;
+  const total = text.length;
+  let speed = p.key_min + Math.random() * (p.key_max - p.key_min);
+  let burstLeft = Math.floor(p.burst_min + Math.random() * (p.burst_max - p.burst_min + 1));
+  demoEl.textContent = '';
+
+  while (i < total && !demoAbort) {
+    const ch = text[i];
+    let typed = false;
+
+    // ── warmup ──
+    let warmupMult = 1;
+    if (wordCount < p.warmup_words) warmupMult = 1.2 + Math.random() * 0.8;
+    // ── drift ──
+    const drift = 1 + (i / Math.max(total, 1) - 0.5) * p.drift_factor * 2;
+
+    // ── fat-finger (leave mistakes ON only) ──
+    const fatChance = p.typo_chance * 0.3;
+    if (demoLeave && /[a-zA-Z]/.test(ch) && Math.random() < fatChance) {
+      let w = NEARBY[ch.toLowerCase()] || ch;
+      if (ch === ch.toUpperCase()) w = w.toUpperCase();
+      demoEl.textContent += w;
+      await sleep(p.typo_bsp_min + Math.random() * (p.typo_bsp_max - p.typo_bsp_min));
+    }
+
+    // ── word-start double typo ──
+    if (p.word_typo_chance > 0 && /[a-zA-Z]/.test(ch)
+        && (i === 0 || text[i-1] === ' ')
+        && Math.random() < p.word_typo_chance) {
+      const n = 1 + Math.floor(Math.random() * 2);
+      for (let w = 0; w < n; w++) {
+        if (i + w >= total) break;
+        const rc = text[i+w];
+        if (/[a-zA-Z]/.test(rc)) {
+          let wr = NEARBY[rc.toLowerCase()] || rc;
+          if (rc === rc.toUpperCase()) wr = wr.toUpperCase();
+          demoEl.textContent += wr;
+          await sleep(p.typo_bsp_min + Math.random() * (p.typo_bsp_max - p.typo_bsp_min));
+        }
+      }
+      if (demoLeave && Math.random() < 0.35) {
+        // leave the mess
+      } else {
+        for (let w = 0; w < n; w++) {
+          demoEl.textContent = demoEl.textContent.slice(0, -1);
+          await sleep(p.typo_bsp_min + Math.random() * (p.typo_bsp_max - p.typo_bsp_min));
+        }
+      }
+      await sleep(0.06 + Math.random() * 0.24);
+    }
+
+    // ── single typo ──
+    if (p.typo_chance > 0 && /[a-zA-Z]/.test(ch)
+        && Math.random() < p.typo_chance) {
+      let wrong = NEARBY[ch.toLowerCase()] || ch;
+      if (ch === ch.toUpperCase()) wrong = wrong.toUpperCase();
+      demoEl.textContent += wrong;
+      await sleep(p.typo_bsp_min + Math.random() * (p.typo_bsp_max - p.typo_bsp_min));
+      if (!demoLeave || Math.random() >= 0.4) {
+        demoEl.textContent = demoEl.textContent.slice(0, -1);
+        await sleep(p.typo_bsp_min + Math.random() * (p.typo_bsp_max - p.typo_bsp_min));
+      }
+    }
+
+    // ── type real char ──
+    if (ch !== '\n' && ch !== '\t') {
+      demoEl.textContent += ch;
+      typed = true;
+    }
+    i++;
+
+    if (!typed || !demoRunning) continue;
+
+    // ── burst ──
+    burstLeft--;
+    if (burstLeft <= 0) {
+      speed = p.key_min + Math.random() * (p.key_max - p.key_min);
+      burstLeft = Math.floor(p.burst_min + Math.random() * (p.burst_max - p.burst_min + 1));
+    }
+
+    // ── inter-key delay ──
+    const jitter = 1 - p.speed_jitter/2 + Math.random() * p.speed_jitter;
+    await sleep(speed * jitter * warmupMult * drift);
+
+    // ── mid-word hesitation ──
+    if (i < total && text[i] !== ' ' && text[i] !== '\n' && text[i] !== '\t'
+        && Math.random() < p.hesitate_chance) {
+      await sleep(p.hesitate_min + Math.random() * (p.hesitate_max - p.hesitate_min));
+    }
+
+    // ── end of word ──
+    if (i < total && text[i] === ' ') {
+      wordCount++;
+      if (wordCount % p.ramp_words === 0) {
+        speed = p.key_min + Math.random() * (p.key_max - p.key_min);
+        burstLeft = Math.floor(p.burst_min + Math.random() * (p.burst_max - p.burst_min + 1));
+      }
+      if (Math.random() < p.wp_chance) {
+        await sleep(p.wp_min + Math.random() * (p.wp_max - p.wp_min));
+      }
+    }
+
+    // ── sentence end pause ──
+    if ('.!?'.includes(ch) && (i >= total || text[i] === ' ')) {
+      if (p.sent_max > 0) {
+        await sleep(p.sent_min + Math.random() * (p.sent_max - p.sent_min));
+      }
     }
   }
-  typeChar();
 }
 
-function cycleDemo() {
-  typeSentence(demoSentences[demoIdx], demoEl, () => {
-    demoPauseTimer = null;
+async function runDemo() {
+  demoRunning = true;
+  demoAbort = false;
+  while (demoRunning && !demoAbort) {
+    await typeHuman(demoSentences[demoIdx]);
+    if (!demoRunning || demoAbort) break;
     demoIdx = (demoIdx + 1) % demoSentences.length;
-    cycleDemo();
-  });
+    await sleep(1.5);
+  }
 }
 
-// ── mode buttons ──
+function restartDemo() {
+  demoAbort = true;
+  setTimeout(() => {
+    demoAbort = false;
+    demoIdx = 0;
+    demoEl.textContent = '';
+    runDemo();
+  }, 80);
+}
+
 document.querySelectorAll('#demo-modes button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#demo-modes button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     demoMode = btn.dataset.mode;
-    if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
-    if (demoPauseTimer) { clearTimeout(demoPauseTimer); demoPauseTimer = null; }
-    demoIdx = 0;
-    demoEl.textContent = '';
-    cycleDemo();
+    restartDemo();
   });
 });
 
-cycleDemo();
+demoLeaveCb.addEventListener('change', () => {
+  demoLeave = demoLeaveCb.checked;
+  restartDemo();
+});
+
+runDemo();
 </script>
 </body>
 </html>
