@@ -216,7 +216,6 @@
       <button data-mode="Average">Average</button>
       <button data-mode="Expert">Expert</button>
       <button data-mode="Pro" class="active">Pro</button>
-      <button data-mode="Bot">Bot</button>
       <label class="mistake-toggle">
         <input type="checkbox" id="demo-leave-cb"> Leave mistakes
       </label>
@@ -237,7 +236,6 @@
         <tr><td class="mode-name">Average</td><td>~61 WPM</td><td>3.5%</td><td>7% chance</td><td>Everyday human mimicry</td></tr>
         <tr><td class="mode-name">Expert</td><td>~88 WPM</td><td>1.8%</td><td>3% chance</td><td>Skilled typist simulation</td></tr>
         <tr><td class="mode-name">Pro</td><td>~107 WPM</td><td>0.7%</td><td>1.2% chance</td><td>Fast professional</td></tr>
-        <tr><td class="mode-name">Bot</td><td>instant</td><td>0%</td><td>none</td><td>Raw speed (detectable)</td></tr>
       </tbody>
     </table>
   </div>
@@ -379,13 +377,6 @@ const DEMO_PROFILES = {
     sent_min:0.10,sent_max:0.35,wp_chance:0.03,wp_min:0.02,wp_max:0.08,
     typo_chance:0.007,typo_bsp_min:0.04,typo_bsp_max:0.09,
     word_typo_chance:0.0,speed_jitter:0.85,ramp_words:5,warmup_words:1,drift_factor:0.06
-  },
-  Bot: {
-    key_min:0.0,key_max:0.004,hold_min:0.0,hold_max:0.002,
-    burst_min:999,burst_max:999,hesitate_chance:0.0,hesitate_min:0.0,hesitate_max:0.0,
-    sent_min:0.0,sent_max:0.0,wp_chance:0.0,wp_min:0.0,wp_max:0.0,
-    typo_chance:0.0,typo_bsp_min:0.0,typo_bsp_max:0.0,
-    word_typo_chance:0.0,speed_jitter:1.0,ramp_words:999,warmup_words:0,drift_factor:0.0
   }
 };
 
@@ -410,14 +401,6 @@ function sleep(ms) {
 
 async function typeHuman(text) {
   const p = DEMO_PROFILES[demoMode];
-
-  // Bot mode: instant text dump (no animation needed)
-  if (demoMode === 'Bot') {
-    demoEl.textContent = text;
-    await sleep(0.6);
-    return;
-  }
-
   let i = 0, wordCount = 0;
   const total = text.length;
   let speed = p.key_min + Math.random() * (p.key_max - p.key_min);

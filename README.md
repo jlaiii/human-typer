@@ -14,7 +14,7 @@ A Python GUI tool that types text for you with realistic human-like keystroke pa
 
 ## Features
 
-- **5 skill modes** — Beginner (~30 WPM), Average (~61 WPM), Expert (~88 WPM), Pro (~107 WPM), Bot (instant)
+- **5 skill modes** — Beginner (~30 WPM), Average (~61 WPM), Expert (~88 WPM), Pro (~107 WPM)
 - **Human-like typing engine** — variable inter-key delays, speed bursts, mid-word hesitation, sentence pauses
 - **Realistic mistakes** — nearby-key typos, word-start fumbles, double-tap errors
 - **&ldquo;Leave mistakes&rdquo; toggle** — skip backspace corrections so errors stay (like a real person)
@@ -53,7 +53,6 @@ Press **Esc** or click **Stop** to cancel at any time.
 | Average | ~61 WPM | 3.5% | 7% | Everyday typing |
 | Expert | ~88 WPM | 1.8% | 3% | Skilled professional |
 | Pro | ~107 WPM | 0.7% | 1.2% | Competitive typist |
-| Bot | instant | 0% | none | Raw speed, no disguise |
 
 ## How It Works
 
