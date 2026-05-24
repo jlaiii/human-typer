@@ -2,6 +2,8 @@
 
 **Type like a human. Fool the bots.**
 
+[![Website](https://img.shields.io/badge/website-jlaiii.github.io%2Fhuman--typer-58a6ff)](https://jlaiii.github.io/human-typer/)
+
 A Python GUI tool that types text for you with realistic human-like keystroke patterns — variable timing, natural hesitations, realistic mistakes, and anti-detection features to bypass automated bot/tracker detection in browsers and applications.
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue)
