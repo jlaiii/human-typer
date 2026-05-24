@@ -346,12 +346,13 @@ const modeDelays = {
   Average:  { min: 80,  max: 200, pause: 1800 },
   Expert:   { min: 55,  max: 150, pause: 1600 },
   Pro:      { min: 35,  max: 110, pause: 1400 },
-  Bot:      { min: 4,   max: 12,  pause: 600  }
+  Bot:      { min: 15,  max: 30,  pause: 500  }
 };
 
 let demoIdx = 0;
 let demoMode = 'Pro';
 let demoTimer = null;
+let demoPauseTimer = null;
 const demoEl = document.getElementById('demo-text');
 
 function typeSentence(text, el, callback) {
@@ -366,7 +367,7 @@ function typeSentence(text, el, callback) {
       demoTimer = setTimeout(typeChar, delay);
     } else {
       demoTimer = null;
-      if (callback) setTimeout(callback, d.pause);
+      if (callback) demoPauseTimer = setTimeout(callback, d.pause);
     }
   }
   typeChar();
@@ -374,6 +375,7 @@ function typeSentence(text, el, callback) {
 
 function cycleDemo() {
   typeSentence(demoSentences[demoIdx], demoEl, () => {
+    demoPauseTimer = null;
     demoIdx = (demoIdx + 1) % demoSentences.length;
     cycleDemo();
   });
@@ -385,9 +387,10 @@ document.querySelectorAll('#demo-modes button').forEach(btn => {
     document.querySelectorAll('#demo-modes button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     demoMode = btn.dataset.mode;
-    // restart demo with new speed
-    if (demoTimer) clearTimeout(demoTimer);
+    if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+    if (demoPauseTimer) { clearTimeout(demoPauseTimer); demoPauseTimer = null; }
     demoIdx = 0;
+    demoEl.textContent = '';
     cycleDemo();
   });
 });
