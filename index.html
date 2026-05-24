@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Human Typer — by jlaiii</title>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── canvas background ── */
+  canvas#bg { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; }
+
+  /* ── content ── */
+  .content { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:60px 24px 40px; }
+
+  /* ── hero ── */
+  .hero { text-align:center; margin-bottom:48px; }
+  .hero h1 {
+    font-size:clamp(2rem, 6vw, 3.4rem);
+    font-weight:700;
+    background:linear-gradient(135deg, #58a6ff, #bc8cff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .hero .tagline {
+    margin-top:8px;
+    font-size:1.15rem;
+    color:#8b949e;
+  }
+  .hero .by {
+    margin-top:12px;
+    font-size:0.95rem;
+    color:#6e7681;
+  }
+  .hero .by a { color:#58a6ff; text-decoration:none; }
+  .hero .by a:hover { text-decoration:underline; }
+
+  /* ── cta buttons ── */
+  .cta-row { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:24px; }
+  .btn {
+    display:inline-block;
+    padding:12px 28px;
+    border-radius:10px;
+    font-size:1rem;
+    font-weight:600;
+    text-decoration:none;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn:hover { transform:translateY(-2px); }
+  .btn-primary {
+    background:linear-gradient(135deg, #238636, #2ea043);
+    color:#fff;
+    box-shadow:0 0 20px rgba(35,134,54,.35);
+  }
+  .btn-secondary {
+    background:rgba(255,255,255,.06);
+    color:#c9d1d9;
+    border:1px solid #30363d;
+  }
+  .btn-secondary:hover { background:rgba(255,255,255,.1); }
+
+  /* ── features ── */
+  .features { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:20px; margin:48px 0; }
+  .card {
+    background:rgba(22,27,34,.8);
+    border:1px solid #21262d;
+    border-radius:14px;
+    padding:24px;
+    transition:border-color .2s, box-shadow .2s;
+    backdrop-filter:blur(6px);
+  }
+  .card:hover { border-color:#30363d; box-shadow:0 0 18px rgba(88,166,255,.08); }
+  .card .icon { font-size:1.6rem; margin-bottom:10px; }
+  .card h3 { font-size:1.05rem; margin-bottom:6px; color:#e6edf3; }
+  .card p  { font-size:0.9rem; color:#8b949e; line-height:1.5; }
+
+  /* ── modes table ── */
+  .modes { margin:48px 0; }
+  .modes h2 { font-size:1.4rem; margin-bottom:18px; color:#e6edf3; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:10px 14px; text-align:left; font-size:0.92rem; }
+  th { color:#8b949e; font-weight:500; border-bottom:1px solid #21262d; }
+  td { border-bottom:1px solid #21262d19; }
+  .mode-name { font-weight:600; color:#e6edf3; }
+
+  /* ── footer ── */
+  .footer { text-align:center; margin-top:48px; padding-top:24px; border-top:1px solid #21262d; color:#6e7681; font-size:0.9rem; }
+  .footer a { color:#58a6ff; text-decoration:none; }
+
+  /* ── typing demo ── */
+  .demo-section { margin:48px 0; }
+  .demo-section h2 { font-size:1.4rem; margin-bottom:12px; color:#e6edf3; }
+  .terminal {
+    background:#0d1117;
+    border:1px solid #30363d;
+    border-radius:12px;
+    padding:20px 24px;
+    font-family:'Consolas','Cascadia Code',monospace;
+    font-size:0.9rem;
+    color:#c9d1d9;
+    line-height:1.7;
+    position:relative;
+    overflow:hidden;
+  }
+  .terminal .cursor {
+    display:inline-block;
+    width:8px;
+    height:1.1em;
+    background:#58a6ff;
+    vertical-align:text-bottom;
+    margin-left:2px;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50%{opacity:0;} }
+
+  /* ── responsive ── */
+  @media (max-width:500px) {
+    .content { padding:32px 16px 24px; }
+    .cta-row { flex-direction:column; align-items:stretch; }
+    .btn { text-align:center; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="content">
+  <div class="hero">
+    <h1>Human Typer</h1>
+    <p class="tagline">Type like a human. Fool the bots.</p>
+    <p class="by">by <a href="https://github.com/jlaiii" target="_blank">jlaiii</a></p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/jlaiii/human-typer/raw/main/human_typer.pyw" download>
+        Download .pyw
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/jlaiii/human-typer" target="_blank">
+        View on GitHub
+      </a>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="card">
+      <div class="icon">(。- 。)</div>
+      <h3>Human-like Patterns</h3>
+      <p>Variable keystroke timing, natural bursts, mid-word hesitation — just like a real person typing.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#9888;&#65039;</div>
+      <h3>Realistic Mistakes</h3>
+      <p>Occasional typos with backspace corrections. Optional &ldquo;leave mistakes&rdquo; mode skips the backspace.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#9200;</div>
+      <h3>5-Second Cooldown</h3>
+      <p>Click &ldquo;Type It&rdquo;, switch to your target window, and the text flows in naturally after a short delay.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#127912;</div>
+      <h3>Skill Modes</h3>
+      <p>5 profiles — Beginner, Average, Expert, Pro, and Bot — each with distinct speed, error rate, and rhythm.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128274;</div>
+      <h3>Anti-Detection</h3>
+      <p>Variable key hold duration, speed warmup, drift, and jitter make automated detection extremely difficult.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#9000;</div>
+      <h3>No Console</h3>
+      <p>The .pyw extension + built-in window-hiding means zero terminal clutter. Just the GUI.</p>
+    </div>
+  </div>
+
+  <div class="demo-section">
+    <h2>Live Typing Demo</h2>
+    <div class="terminal" id="demo-terminal">
+      <span id="demo-text"></span><span class="cursor"></span>
+    </div>
+  </div>
+
+  <div class="modes">
+    <h2>Mode Breakdown</h2>
+    <table>
+      <thead>
+        <tr><th>Mode</th><th>Speed</th><th>Typos</th><th>Hesitation</th><th>Best for</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mode-name">Beginner</td><td>~30 WPM</td><td>7.0%</td><td>16% chance</td><td>Maximum undetectability</td></tr>
+        <tr><td class="mode-name">Average</td><td>~61 WPM</td><td>3.5%</td><td>7% chance</td><td>Everyday human mimicry</td></tr>
+        <tr><td class="mode-name">Expert</td><td>~88 WPM</td><td>1.8%</td><td>3% chance</td><td>Skilled typist simulation</td></tr>
+        <tr><td class="mode-name">Pro</td><td>~107 WPM</td><td>0.7%</td><td>1.2% chance</td><td>Fast professional</td></tr>
+        <tr><td class="mode-name">Bot</td><td>instant</td><td>0%</td><td>none</td><td>Raw speed (detectable)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p>made by <a href="https://github.com/jlaiii" target="_blank">jlaiii</a> &middot;
+    <a href="https://github.com/jlaiii/human-typer" target="_blank">source on GitHub</a></p>
+  </div>
+</div>
+
+<script>
+// ── animated particle background ──
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let particles = [];
+const PARTICLE_COUNT = 80;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+class Particle {
+  constructor() {
+    this.reset(true);
+  }
+  reset(init) {
+    this.x = init ? Math.random() * canvas.width : canvas.width + 20;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 2 + 0.8;
+    this.speedX = -(Math.random() * 0.6 + 0.15);
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.45 + 0.1;
+    this.hue = Math.random() < 0.5 ? 210 : 270; // blue or purple tint
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x < -20 || this.y < -20 || this.y > canvas.height + 20) {
+      this.reset(false);
+    }
+  }
+  draw(ctx) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue}, 70%, 65%, ${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+// init particles
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  particles.push(new Particle());
+}
+
+// connection lines between nearby particles
+function drawConnections() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const a = particles[i], b = particles[j];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 110) {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = `rgba(88,166,255,${0.035 * (1 - dist / 110)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const p of particles) { p.update(); p.draw(ctx); }
+  drawConnections();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ── interactive: mouse repels particles ──
+let mouse = { x: -999, y: -999 };
+canvas.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+});
+canvas.addEventListener('mouseleave', () => { mouse.x = -999; mouse.y = -999; });
+
+// override particle update to include mouse repulsion
+const origUpdate = Particle.prototype.update;
+Particle.prototype.update = function() {
+  const dx = this.x - mouse.x;
+  const dy = this.y - mouse.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 130 && dist > 0) {
+    const force = (130 - dist) / 130 * 1.2;
+    this.x += (dx / dist) * force;
+    this.y += (dy / dist) * force;
+  }
+  origUpdate.call(this);
+};
+
+// ── typing demo animation ──
+const demoSentences = [
+  "Human Typer simulates natural keyboard input with variable delays, bursts, and hesitation patterns.",
+  "It fools browser-based bot detection by mimicking real human typing cadence.",
+  "Choose from five skill modes — Beginner to Pro — or go full Bot for raw speed."
+];
+let demoIdx = 0;
+const demoEl = document.getElementById('demo-text');
+
+function typeSentence(text, el, callback) {
+  let i = 0;
+  el.textContent = '';
+  function typeChar() {
+    if (i < text.length) {
+      el.textContent += text[i];
+      i++;
+      const delay = 20 + Math.random() * 60;
+      setTimeout(typeChar, delay);
+    } else {
+      if (callback) setTimeout(callback, 1800);
+    }
+  }
+  typeChar();
+}
+
+function cycleDemo() {
+  typeSentence(demoSentences[demoIdx], demoEl, () => {
+    demoIdx = (demoIdx + 1) % demoSentences.length;
+    cycleDemo();
+  });
+}
+cycleDemo();
+</script>
+</body>
+</html>
