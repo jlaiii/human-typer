@@ -98,6 +98,28 @@
   /* ── typing demo ── */
   .demo-section { margin:48px 0; }
   .demo-section h2 { font-size:1.4rem; margin-bottom:12px; color:#e6edf3; }
+
+  /* ── demo mode selector ── */
+  .demo-modes { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .demo-modes button {
+    background:rgba(255,255,255,.04);
+    border:1px solid #30363d;
+    color:#8b949e;
+    padding:6px 14px;
+    border-radius:8px;
+    font-size:0.82rem;
+    font-family:inherit;
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .demo-modes button:hover { border-color:#58a6ff; color:#c9d1d9; }
+  .demo-modes button.active {
+    background:rgba(88,166,255,.15);
+    border-color:#58a6ff;
+    color:#58a6ff;
+    font-weight:600;
+  }
+
   .terminal {
     background:#0d1117;
     border:1px solid #30363d;
@@ -182,6 +204,13 @@
 
   <div class="demo-section">
     <h2>Live Typing Demo</h2>
+    <div class="demo-modes" id="demo-modes">
+      <button data-mode="Beginner">Beginner</button>
+      <button data-mode="Average" class="active">Average</button>
+      <button data-mode="Expert">Expert</button>
+      <button data-mode="Pro">Pro</button>
+      <button data-mode="Bot">Bot</button>
+    </div>
     <div class="terminal" id="demo-terminal">
       <span id="demo-text"></span><span class="cursor"></span>
     </div>
@@ -311,20 +340,33 @@ const demoSentences = [
   "It fools browser-based bot detection by mimicking real human typing cadence.",
   "Choose from five skill modes — Beginner to Pro — or go full Bot for raw speed."
 ];
+
+const modeDelays = {
+  Beginner: { min: 140, max: 320, pause: 1800 },
+  Average:  { min: 80,  max: 200, pause: 1800 },
+  Expert:   { min: 55,  max: 150, pause: 1600 },
+  Pro:      { min: 35,  max: 110, pause: 1400 },
+  Bot:      { min: 4,   max: 12,  pause: 600  }
+};
+
 let demoIdx = 0;
+let demoMode = 'Average';
+let demoTimer = null;
 const demoEl = document.getElementById('demo-text');
 
 function typeSentence(text, el, callback) {
   let i = 0;
   el.textContent = '';
+  const d = modeDelays[demoMode];
   function typeChar() {
     if (i < text.length) {
       el.textContent += text[i];
       i++;
-      const delay = 20 + Math.random() * 60;
-      setTimeout(typeChar, delay);
+      const delay = d.min + Math.random() * (d.max - d.min);
+      demoTimer = setTimeout(typeChar, delay);
     } else {
-      if (callback) setTimeout(callback, 1800);
+      demoTimer = null;
+      if (callback) setTimeout(callback, d.pause);
     }
   }
   typeChar();
@@ -336,6 +378,20 @@ function cycleDemo() {
     cycleDemo();
   });
 }
+
+// ── mode buttons ──
+document.querySelectorAll('#demo-modes button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#demo-modes button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    demoMode = btn.dataset.mode;
+    // restart demo with new speed
+    if (demoTimer) clearTimeout(demoTimer);
+    demoIdx = 0;
+    cycleDemo();
+  });
+});
+
 cycleDemo();
 </script>
 </body>
