@@ -206,9 +206,9 @@
     <h2>Live Typing Demo</h2>
     <div class="demo-modes" id="demo-modes">
       <button data-mode="Beginner">Beginner</button>
-      <button data-mode="Average" class="active">Average</button>
+      <button data-mode="Average">Average</button>
       <button data-mode="Expert">Expert</button>
-      <button data-mode="Pro">Pro</button>
+      <button data-mode="Pro" class="active">Pro</button>
       <button data-mode="Bot">Bot</button>
     </div>
     <div class="terminal" id="demo-terminal">
@@ -350,7 +350,7 @@ const modeDelays = {
 };
 
 let demoIdx = 0;
-let demoMode = 'Average';
+let demoMode = 'Pro';
 let demoTimer = null;
 const demoEl = document.getElementById('demo-text');
 
